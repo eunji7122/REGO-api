@@ -66,22 +66,17 @@ class PrivateKeyView(APIView):
 
 
 class Auth(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
-        try:
-            p_num = request.data['phone']
-        except KeyError:
-            return Response({'message': 'Bad Request'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            User.objects.update_or_create(phone=p_num)
-            return Response({'message': 'OK'})
+        request.user.send_sms()
+        return Response({'message': 'OK'})
 
     def get(self, request):
         try:
-            p_num = request.query_params['phone']
-
             a_num = request.query_params['auth_number']
         except KeyError:
             return Response({'message': 'Bad Request'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            result = User.check_auth_number(p_num, a_num)
+            result = request.user.check_auth_number(a_num)
             return Response({'message': 'OK', 'result': result})

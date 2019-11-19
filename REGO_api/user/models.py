@@ -18,12 +18,9 @@ class User(AbstractUser, TimeStampedModel):
     class Meta:
         db_table = 'User'
 
-    def save(self, *args, **kwargs):
-        self.auth_number = randint(1000, 10000)
-        super().save(*args, **kwargs)
-        self.send_sms()  # 인증번호가 담긴 SMS를 전송
-
     def send_sms(self):
+        self.auth_number = randint(1000, 10000)
+        self.save()
         url = 'https://api-sens.ncloud.com/v1/sms/services/ncp:sms:kr:257319716069:sms_service/messages/'
 
         data = {
@@ -39,15 +36,6 @@ class User(AbstractUser, TimeStampedModel):
         }
         requests.post(url, json=data, headers=headers)
 
-    @classmethod
-    def check_auth_number(cls, p_num, c_num):
+    def check_auth_number(self, c_num):
         time_limit = timezone.now() - datetime.timedelta(minutes=5)
-
-        result = cls.objects.filter(
-            phone=p_num,
-            auth_number=c_num,
-            modified__gte=time_limit
-        )
-        if result:
-            return True
-        return False
+        return str(self.auth_number) == str(c_num) and self.modified > time_limit
